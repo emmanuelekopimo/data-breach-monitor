@@ -44,6 +44,7 @@ test("a new account starts empty and cannot see demo data", async ({ page }) => 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId("threat-level")).toHaveText("THREAT LEVEL: LOW");
   await expect(page.getByText("All clear")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset demo data" })).toHaveCount(0);
 
   // Exposure 1 belongs to the demo user.
   await page.goto("/exposures/1");

@@ -62,7 +62,7 @@ describe("remediation steps", () => {
 
 describe("cleanText", () => {
   it("strips tags and typographic characters", () => {
-    expect(cleanText("<a href='x'>Big</a> breach — “quoted” &amp; more")).toBe('Big breach - "quoted" & more');
+    expect(cleanText("<a href='x'>Big</a> breach \u2014 \u201Cquoted\u201D &amp; more")).toBe('Big breach - "quoted" & more');
   });
 });
 

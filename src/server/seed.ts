@@ -1,4 +1,4 @@
-import { count, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { assets, breaches, exposures, leakRecords, scans, users } from "@/db/schema";
 import { hashPassword } from "@/lib/auth/password";
@@ -97,14 +97,40 @@ export async function seedDemo(db: Db, catalog: CatalogEntry[], today: IsoDate):
   );
   await db.insert(leakRecords).values(leakRows).onConflictDoNothing();
 
-  // Demo user and assets
   const [user] = await db
     .insert(users)
     .values({ name: DEMO_NAME, email: DEMO_EMAIL, passwordHash: await hashPassword(DEMO_PASSWORD) })
     .returning({ id: users.id });
+  const exposureCount = await seedDemoUserData(db, user.id, today);
+  return { breaches: breachCount, exposures: exposureCount };
+}
+
+/** Removes a user's assets, findings and scan history. */
+async function clearUserData(db: Db, userId: number) {
+  await db.delete(scans).where(eq(scans.userId, userId));
+  await db.delete(assets).where(eq(assets.userId, userId)); // cascades to exposures
+}
+
+/**
+ * Restores the demo account to its starting state, dated relative to `today`.
+ * Used by the "Reset demo data" button so a live demo always starts the same way.
+ */
+export async function resetDemoUser(db: Db, userId: number, today: IsoDate): Promise<number> {
+  await clearUserData(db, userId);
+  return seedDemoUserData(db, userId, today);
+}
+
+async function seedDemoUserData(db: Db, userId: number, today: IsoDate): Promise<number> {
+  const all = await db.select({ id: breaches.id, name: breaches.name, severity: breaches.severity }).from(breaches);
+  const byName = new Map(all.map((b) => [b.name, b]));
+  const need = (name: string) => {
+    const b = byName.get(name);
+    if (!b) throw new Error(`Seed breach ${name} is not in the catalog`);
+    return b;
+  };
   const created = await db
     .insert(assets)
-    .values(ASSETS.map((a) => ({ ...a, userId: user.id, lastScannedOn: addDays(today, -1) })))
+    .values(ASSETS.map((a) => ({ ...a, userId, lastScannedOn: addDays(today, -1) })))
     .returning({ id: assets.id, kind: assets.kind, value: assets.value });
   const assetFor = (email: string) =>
     created.find((a) => a.kind === "email" && a.value === email) ?? created.find((a) => a.kind === "domain" && a.value === emailDomain(email));
@@ -117,7 +143,7 @@ export async function seedDemo(db: Db, catalog: CatalogEntry[], today: IsoDate):
       if (!asset) throw new Error(`No asset covers ${i.email}`);
       const detectedOn = addDays(today, e.detected);
       return {
-        userId: user.id,
+        userId,
         assetId: asset.id,
         breachId: b.id,
         emailHash: hashEmail(i.email),
@@ -134,9 +160,9 @@ export async function seedDemo(db: Db, catalog: CatalogEntry[], today: IsoDate):
   await db.insert(exposures).values(exposureRows);
 
   await db.insert(scans).values([
-    { userId: user.id, ranOn: addDays(today, -5), ranAt: new Date(`${addDays(today, -5)}T08:15:00Z`), assetsChecked: 5, recordsMatched: 9, newExposures: 1 },
-    { userId: user.id, ranOn: addDays(today, -1), ranAt: new Date(`${addDays(today, -1)}T08:15:00Z`), assetsChecked: 5, recordsMatched: 14, newExposures: 1 },
+    { userId, ranOn: addDays(today, -5), ranAt: new Date(`${addDays(today, -5)}T08:15:00Z`), assetsChecked: 5, recordsMatched: 9, newExposures: 1 },
+    { userId, ranOn: addDays(today, -1), ranAt: new Date(`${addDays(today, -1)}T08:15:00Z`), assetsChecked: 5, recordsMatched: 14, newExposures: 1 },
   ]);
+  return exposureRows.length;
 
-  return { breaches: breachCount, exposures: exposureRows.length };
 }

@@ -3,7 +3,7 @@ import { users } from "@/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import { addAsset, deleteAsset, getExposure, getUserByEmail, listAssets, listExposures, saveNotes, setResolved, setStepDone } from "@/server/queries";
 import { runScan } from "@/server/scan";
-import { DEMO_EMAIL } from "@/server/seed";
+import { DEMO_EMAIL, resetDemoUser } from "@/server/seed";
 import { client, db, freshSeed, TODAY } from "./helpers";
 
 afterAll(() => client.end());
@@ -99,5 +99,25 @@ describe("mutations", () => {
     expect(await deleteAsset(db, demoId, work.id)).toBe(true);
     const rows = await listExposures(db, demoId, TODAY);
     expect(rows.some((r) => r.assetId === work.id)).toBe(false);
+  });
+});
+
+describe("resetDemoUser", () => {
+  it("restores the demo account after changes, dated relative to a new today", async () => {
+    await runScan(db, demoId, TODAY);
+    await addAsset(db, demoId, { kind: "email", value: "demo.user@example.net", label: "" });
+    expect(await resetDemoUser(db, demoId, "2026-11-01")).toBe(14);
+    const rows = await listExposures(db, demoId, "2026-11-01");
+    expect(rows).toHaveLength(14);
+    expect(rows.find((r) => r.breachName === "Wattpad")!.detectedOn).toBe("2026-10-31");
+    expect((await listAssets(db, demoId, "2026-11-01")).map((a) => a.value)).not.toContain("demo.user@example.net");
+    // The pending leak records are still there, so the next scan finds them again.
+    expect((await runScan(db, demoId, "2026-11-01")).newExposures).toBe(4);
+  });
+
+  it("leaves other users alone", async () => {
+    await addAsset(db, otherId, { kind: "email", value: "demo.user@example.net", label: "" });
+    await resetDemoUser(db, demoId, TODAY);
+    expect(await listAssets(db, otherId, TODAY)).toHaveLength(1);
   });
 });

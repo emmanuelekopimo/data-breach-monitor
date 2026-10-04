@@ -21,6 +21,16 @@ test("running a scan finds new exposures and raises the threat level", async ({ 
   await expect(page.getByTestId("threat-level")).toHaveText("THREAT LEVEL: SEVERE");
 });
 
+test("reset demo data restores the starting state", async ({ page }) => {
+  await page.getByTestId("run-scan").click();
+  await expect(page.getByTestId("scan-log")).toContainText("Scan complete: 4 new exposure(s)");
+  await page.reload();
+  await expect(page.getByTestId("threat-level")).toHaveText("THREAT LEVEL: SEVERE");
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Reset demo data" }).click();
+  await expect(page.getByTestId("threat-level")).toHaveText("THREAT LEVEL: ELEVATED");
+});
+
 test("adding an asset validates input and scans it", async ({ page }) => {
   await page.goto("/assets");
   const form = page.getByTestId("add-asset-form");

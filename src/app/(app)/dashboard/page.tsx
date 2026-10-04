@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, CalendarClock, ChevronRight, CircleCheck, Database, ListChecks, OctagonAlert, Radar, ShieldAlert } from "lucide-react";
+import { Activity, CalendarClock, ChevronRight, CircleCheck, Database, ListChecks, OctagonAlert, Radar, RotateCcw, ShieldAlert } from "lucide-react";
+import { resetDemoAction } from "@/app/actions/demo";
+import { ConfirmButton } from "@/components/confirm-button";
 import { SeverityBadge, StatusBadge } from "@/components/badges";
 import { ScanConsole } from "@/components/scan-console";
 import { SeverityBars } from "@/components/severity-bars";
@@ -11,6 +13,7 @@ import { formatDate, relativeDays } from "@/lib/dates";
 import { compactNumber } from "@/lib/format";
 import { getToday } from "@/lib/today";
 import { getDashboard } from "@/server/queries";
+import { DEMO_EMAIL } from "@/server/seed";
 import { requireUser } from "@/server/session";
 
 export const metadata: Metadata = { title: "Overview" };
@@ -29,9 +32,18 @@ export default async function DashboardPage() {
           <h1>Welcome back, {user.name.split(" ")[0]}</h1>
           <p>Exposure status for every email address and domain you monitor, scored against remediation deadlines.</p>
         </div>
-        <Link className="btn" href="/exposures?status=overdue">
-          <OctagonAlert size={15} aria-hidden /> View overdue
-        </Link>
+        <div className="row">
+          {user.email === DEMO_EMAIL ? (
+            <form action={resetDemoAction}>
+              <ConfirmButton className="btn" label="Reset demo data" message="Reset the demo account to its starting data? Your changes to it will be lost.">
+                <RotateCcw size={15} aria-hidden /> Reset demo data
+              </ConfirmButton>
+            </form>
+          ) : null}
+          <Link className="btn" href="/exposures?status=overdue">
+            <OctagonAlert size={15} aria-hidden /> View overdue
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-hero">
