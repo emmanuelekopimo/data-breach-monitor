@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 96" width="120" height="96" role="img" aria-label="Empty radar">
+  <g fill="none" stroke="#22d3ee" stroke-opacity=".3">
+    <circle cx="60" cy="48" r="40"/>
+    <circle cx="60" cy="48" r="26"/>
+    <circle cx="60" cy="48" r="12"/>
+    <line x1="20" y1="48" x2="100" y2="48"/>
+    <line x1="60" y1="8" x2="60" y2="88"/>
+  </g>
+  <path d="M60 48 92 24A40 40 0 0 0 60 8z" fill="#22d3ee" fill-opacity=".18"/>
+  <line x1="60" y1="48" x2="92" y2="24" stroke="#22d3ee" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -50,6 +50,6 @@
   },
   "description": "BreachWatch: a data breach monitor for email addresses and domains",
   "engines": {
-    "node": ">=20.9"
+    "node": "22.x"
   }
 }
